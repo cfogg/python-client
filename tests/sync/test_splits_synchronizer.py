@@ -127,3 +127,30 @@ class SplitsSynchronizerTests(object):
         split_synchronizer.synchronize_splits(1)
 
         assert get_changes.called == 0
+
+    def test_synchronize_splits_loop(self, mocker):
+        """Test split sync."""
+
+        class MockSplitStorage:
+            def __init__(self):
+                self.cn = 1
+
+            def get_change_number(self):
+                return self.cn
+
+            def set_change_number(self, cn):
+                self.cn = cn
+
+        class MockApi:
+            def __init__(self):
+                self.last_fetched = None
+
+            def fetch_splits(self, cn):
+                if cn == self.last_fetched:
+                    raise Exception('Repeated fetch of same change number')
+                self.last_fetched = cn
+                return {"splits": [], "since": 1, "till": 1}
+
+        sync = SplitSynchronizer(MockApi(), MockSplitStorage())
+        sync.synchronize_splits(2)
+
