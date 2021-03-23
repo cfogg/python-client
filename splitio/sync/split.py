@@ -40,6 +40,7 @@ class SplitSynchronizer(object):
         :param till: Passed till from Streaming.
         :type till: int
         """
+        fetched_changes = set()
         while True:
             change_number = self._split_storage.get_change_number()
             if change_number is None:
@@ -47,6 +48,10 @@ class SplitSynchronizer(object):
             if till is not None and till < change_number:
                 # the passed till is less than change_number, no need to perform updates
                 return
+            if change_number in fetched_changes:
+                # don't re-request a change we've already seen
+                return
+            fetched_changes.add(change_number)
 
             try:
                 split_changes = self._api.fetch_splits(change_number)
